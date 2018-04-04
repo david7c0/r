@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class TestAccountMapStore implements MapStore<String, Account> {
+    public static final String PROBLEMATIC_ACCOUNT_ID = "problematic_account_id";
     private final Map<String, Account> accounts = new HashMap<>();
 
     public TestAccountMapStore(int startAccountId, int endAccountId, String currency, BigDecimal balance) {
@@ -17,6 +18,8 @@ public class TestAccountMapStore implements MapStore<String, Account> {
             account.withdrawOrDeposit(currency, balance);
             accounts.put(account.getAccountId(), account);
         }
+
+        accounts.put(PROBLEMATIC_ACCOUNT_ID, new ProblematicAccount(PROBLEMATIC_ACCOUNT_ID, currency, balance));
     }
 
     @Override

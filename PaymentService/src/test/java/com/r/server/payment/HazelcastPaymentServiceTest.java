@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 public class HazelcastPaymentServiceTest {
@@ -96,21 +95,23 @@ public class HazelcastPaymentServiceTest {
     }
 
     @Test
-    public void testRollbackOnFailure() {
-        String fromAccountId = "0";
-        String mockAccountId = "mock_account_id";
-        when(mockAccount.getAccountId()).thenReturn(mockAccountId);
-        when(mockAccount.withdrawOrDeposit(any(String.class), any(BigDecimal.class))).thenThrow(RuntimeException.class);
-        hazelcast.getMap(PaymentServiceConstants.ACCOUNT_MAP).put(mockAccount.getAccountId(), mockAccount);
+    public void testRollbackOnFailure_PaymentFromAndToProblematicAccount() {
+        String normalAccountId = "0";
+        BigDecimal balance = paymentService.getAccount(normalAccountId).getBalance(CURRENCY);
 
-        BigDecimal balance = paymentService.getAccount(fromAccountId).getBalance(CURRENCY);
-
-        PaymentRequest request = new PaymentRequest(fromAccountId, mockAccountId, CURRENCY, BigDecimal.TEN);
+        // To problematic account
+        PaymentRequest request = new PaymentRequest(normalAccountId, TestAccountMapStore.PROBLEMATIC_ACCOUNT_ID, CURRENCY, BigDecimal.TEN);
         TransactionResult result = paymentService.transfer(request);
         assertEquals(TransactionResultCode.Failed, result.getCode());
-
         // Balance should remain the same as the transaction did not go through.
-        assertTrue(balance.compareTo(paymentService.getAccount(fromAccountId).getBalance(CURRENCY)) == 0);
+        assertTrue(balance.compareTo(paymentService.getAccount(normalAccountId).getBalance(CURRENCY)) == 0);
+
+        // From problematic account
+        request = new PaymentRequest(TestAccountMapStore.PROBLEMATIC_ACCOUNT_ID, normalAccountId, CURRENCY, BigDecimal.TEN);
+        result = paymentService.transfer(request);
+        assertEquals(TransactionResultCode.Failed, result.getCode());
+        // Balance should remain the same as the transaction did not go through.
+        assertTrue(balance.compareTo(paymentService.getAccount(normalAccountId).getBalance(CURRENCY)) == 0);
     }
 
     @Test

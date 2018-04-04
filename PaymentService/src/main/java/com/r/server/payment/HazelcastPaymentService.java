@@ -77,6 +77,9 @@ public class HazelcastPaymentService implements PaymentService {
                 }
             } catch (Throwable e) {
                 context.rollbackTransaction();
+                LOGGER.log(Level.SEVERE,
+                        String.format("An error occurred while processing: %s", request),
+                        e);
             }
         } catch (Throwable e) {
             LOGGER.log(Level.SEVERE,
