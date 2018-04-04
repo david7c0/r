@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 
 public class HazelcastPaymentServiceTest {
     private final int MIN_ACCOUNT_ID = 0;
-    private final int MAX_ACCOUNT_ID = 10;
+    private final int MAX_ACCOUNT_ID = 4;
     private final String CURRENCY = "GBP";
     private final BigDecimal BALANCE = BigDecimal.valueOf(10000);
 
