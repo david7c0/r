@@ -22,9 +22,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class PaymentServiceVerticle extends AbstractVerticle implements JsonMessageConsumer {
+    private static final Logger LOGGER = Logger.getLogger(PaymentServiceVerticle.class.getCanonicalName());
+
     public static final String GET_ACCOUNT = "http.get.account";
     public static final String TRANSFER = "http.transfer";
 
@@ -56,7 +59,15 @@ public class PaymentServiceVerticle extends AbstractVerticle implements JsonMess
             JsonMessageConsumer.registerMessageConsumer(eventBus, endpoint.getEventBusMessageAddress(), endpoint.getHandler());
         }
 
-        vertx.createHttpServer().requestHandler(router::accept).listen(port);
+        vertx.createHttpServer().requestHandler(router::accept).listen(port, result -> {
+            if (result.succeeded()) {
+                LOGGER.info("Payment Service is up and running.");
+                startFuture.complete();
+            } else {
+                LOGGER.severe("Payment Service fails to start!");
+                startFuture.fail(result.cause());
+            }
+        });
     }
 
 

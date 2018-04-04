@@ -18,7 +18,7 @@ public class PaymentServiceMain {
     public static void main(String[] args) {
         // Can pass in a config or properties object, rather than just a port number.
         Injector injector = Guice.createInjector(
-                new HazelcastModule(),
+                new HazelcastModule(new DummyAccountMapStore()),
                 new PaymentServiceModule(getPort(args))
         );
 

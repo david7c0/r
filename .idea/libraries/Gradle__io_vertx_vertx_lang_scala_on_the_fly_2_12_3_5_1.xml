@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: io.vertx:vertx-lang-scala-on-the-fly_2.12:3.5.1">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.vertx/vertx-lang-scala-on-the-fly_2.12/3.5.1/1f48cdb8680c19a9a713307ad9c49995d132a007/vertx-lang-scala-on-the-fly_2.12-3.5.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.vertx/vertx-lang-scala-on-the-fly_2.12/3.5.1/99a8f851406e254817338645a9581f94094c13e1/vertx-lang-scala-on-the-fly_2.12-3.5.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
