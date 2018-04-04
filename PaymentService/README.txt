@@ -1,10 +1,15 @@
+***** Usage *****
+Main: PaymentServiceMain
+
 Usage: [Port]
 Default port number: 8080
 
 Data is shared among server instances.
 Deadlock is avoided by locking accounts in a particular order.
 
-GET: http://127.0.0.1:8080/account/:accountId
+
+***** Endpoints *****
+** GET: http://127.0.0.1:8080/account/:accountId
 Test Accounts:
 0
 1000
@@ -13,7 +18,7 @@ Test Accounts:
 ...
 10000
 
-POST: http://127.0.0.1:8080/transfer
+** POST: http://127.0.0.1:8080/transfer
 {
   "fromAccountId" : "2000",
   "toAccountId" : "0",
@@ -22,5 +27,6 @@ POST: http://127.0.0.1:8080/transfer
 }
 
 
-
-
+***** Tests *****
+Integration Test: PaymentServiceIntegrationTest
+Concurrency Unit Test: HazelcastPaymentServiceTest
