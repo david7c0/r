@@ -6,6 +6,7 @@ import com.hazelcast.config.MapStoreConfig;
 import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import com.r.core.Account;
 import com.r.core.PaymentRequest;
 import com.r.core.PaymentServiceConstants;
 import org.junit.Rule;
@@ -23,6 +24,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 public class HazelcastPaymentServiceTest {
     private final int MIN_ACCOUNT_ID = 0;
@@ -41,6 +45,9 @@ public class HazelcastPaymentServiceTest {
 
     @Mock
     TransactionIdGenerator idGenerator;
+
+    @Mock
+    Account mockAccount;
 
     @Spy
     HazelcastInstance hazelcast = initHazelcastInstance();
@@ -67,11 +74,51 @@ public class HazelcastPaymentServiceTest {
     }
 
     @Test
-    public void testConcurrentPaymentRequests_AllGoThroughAndCancelOut() throws InterruptedException {
+    public void testTransactionIdGeneratorIsUsed() {
+        long transIdOne = 1L;
+        long transIdTwo = 2L;
+
+        BigDecimal quantity = BigDecimal.valueOf(1.23);
+        PaymentRequest requestOut = new PaymentRequest("0", "1", CURRENCY, quantity);
+        PaymentRequest requestIn = new PaymentRequest("1", "0", CURRENCY, quantity);
+
+        when(idGenerator.get()).thenReturn(transIdOne);
+
+        TransactionResult result = paymentService.transfer(requestOut);
+        assertEquals(TransactionResultCode.Succeed, result.getCode());
+        assertEquals(transIdOne, result.getTransactionId());
+
+        when(idGenerator.get()).thenReturn(transIdTwo);
+
+        result = paymentService.transfer(requestIn);
+        assertEquals(TransactionResultCode.Succeed, result.getCode());
+        assertEquals(transIdTwo, result.getTransactionId());
+    }
+
+    @Test
+    public void testRollbackOnFailure() {
+        String fromAccountId = "0";
+        String mockAccountId = "mock_account_id";
+        when(mockAccount.getAccountId()).thenReturn(mockAccountId);
+        when(mockAccount.withdrawOrDeposit(any(String.class), any(BigDecimal.class))).thenThrow(RuntimeException.class);
+        hazelcast.getMap(PaymentServiceConstants.ACCOUNT_MAP).put(mockAccount.getAccountId(), mockAccount);
+
+        BigDecimal balance = paymentService.getAccount(fromAccountId).getBalance(CURRENCY);
+
+        PaymentRequest request = new PaymentRequest(fromAccountId, mockAccountId, CURRENCY, BigDecimal.TEN);
+        TransactionResult result = paymentService.transfer(request);
+        assertEquals(TransactionResultCode.Failed, result.getCode());
+
+        // Balance should remain the same as the transaction did not go through.
+        assertTrue(balance.compareTo(paymentService.getAccount(fromAccountId).getBalance(CURRENCY)) == 0);
+    }
+
+    @Test
+    public void testConcurrentPaymentRequests_AllGoThroughAndCancelOut() {
         ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
 
         // Let make sure that we always have sufficient fund.
-        // All payments will go through, so that we can easily check the balances at the end.
+        // All payments should go through, so that we can easily check the balances at the end.
         assert(CONCURRENT_TASK_COUNT * MAX_QUANTITY_PER_TASK <= BALANCE.intValue());
 
         long startTime = System.currentTimeMillis();
@@ -88,8 +135,10 @@ public class HazelcastPaymentServiceTest {
                 // B -> A, so everything is back to square one
                 PaymentRequest requestIn = new PaymentRequest(accountB, accountA, CURRENCY, quantity);
 
-                paymentService.transfer(requestOut);
-                paymentService.transfer(requestIn);
+                TransactionResult result = paymentService.transfer(requestOut);
+                assertEquals(TransactionResultCode.Succeed, result.getCode());
+                result = paymentService.transfer(requestIn);
+                assertEquals(TransactionResultCode.Succeed, result.getCode());
             });
         }
 
@@ -110,7 +159,7 @@ public class HazelcastPaymentServiceTest {
         System.out.println(String.format("Execution Time: %d milliseconds", endTime - startTime));
 
         for (int i = MIN_ACCOUNT_ID; i <= MAX_ACCOUNT_ID; i++) {
-            assertEquals(BALANCE, paymentService.getAccount(String.valueOf(i)).getBalance(CURRENCY));
+            assertTrue(BALANCE.compareTo(paymentService.getAccount(String.valueOf(i)).getBalance(CURRENCY)) == 0);
         }
     }
 }
